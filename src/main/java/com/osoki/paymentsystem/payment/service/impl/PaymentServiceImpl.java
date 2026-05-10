@@ -1,5 +1,6 @@
 package com.osoki.paymentsystem.payment.service.impl;
 
+import com.osoki.paymentsystem.common.exception.PaymentValidationException;
 import com.osoki.paymentsystem.payment.dto.PaymentRequest;
 import com.osoki.paymentsystem.payment.dto.PaymentResponse;
 import com.osoki.paymentsystem.payment.entity.Payment;
@@ -18,7 +19,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponse createPayment(PaymentRequest request) {
-
+        if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new PaymentValidationException("Amount must be greater than 0");
+        }
         //dto to entity
         Payment payment = Payment.builder()
                 .userId(request.userId())

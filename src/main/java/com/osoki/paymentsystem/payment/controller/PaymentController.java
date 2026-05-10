@@ -1,5 +1,6 @@
 package com.osoki.paymentsystem.payment.controller;
 
+import com.osoki.paymentsystem.common.response.ApiResponse;
 import com.osoki.paymentsystem.payment.dto.PaymentRequest;
 import com.osoki.paymentsystem.payment.dto.PaymentResponse;
 import com.osoki.paymentsystem.payment.service.PaymentService;
@@ -17,11 +18,11 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    public ResponseEntity<PaymentResponse> createPayment(
+    public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
             @Valid @RequestBody PaymentRequest request
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(paymentService.createPayment(request));
+                .body(ApiResponse.success(paymentService.createPayment(request)));
     }
 }
