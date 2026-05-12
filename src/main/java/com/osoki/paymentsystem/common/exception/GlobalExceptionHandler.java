@@ -10,15 +10,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Validation annotations (@NotNull vs)
+    // Validation annotations
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationException(
             MethodArgumentNotValidException ex
     ) {
 
         String message = ex.getBindingResult()
-                .getFieldError()
-                .getDefaultMessage();
+                .getFieldErrors()
+                .stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Validation failed");
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -53,5 +56,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Something went wrong"));
+    }
+
+    @ExceptionHandler(PaymentAlreadyProcessingException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAlreadyProcessing(
+            PaymentAlreadyProcessingException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
     }
 }

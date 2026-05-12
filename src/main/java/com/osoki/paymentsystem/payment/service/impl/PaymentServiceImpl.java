@@ -1,42 +1,75 @@
 package com.osoki.paymentsystem.payment.service.impl;
 
-import com.osoki.paymentsystem.common.exception.PaymentValidationException;
+import com.osoki.paymentsystem.common.exception.PaymentAlreadyProcessingException;
 import com.osoki.paymentsystem.payment.dto.PaymentRequest;
 import com.osoki.paymentsystem.payment.dto.PaymentResponse;
 import com.osoki.paymentsystem.payment.entity.Payment;
 import com.osoki.paymentsystem.payment.repository.PaymentRepository;
 import com.osoki.paymentsystem.payment.service.PaymentService;
+import com.osoki.paymentsystem.redis.service.IdempotencyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final IdempotencyService idempotencyService;
 
     @Override
-    public PaymentResponse createPayment(PaymentRequest request) {
-        if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new PaymentValidationException("Amount must be greater than 0");
-        }
-        //dto to entity
-        Payment payment = Payment.builder()
-                .userId(request.userId())
-                .amount(request.amount())
-                .build();
-        //DB save
-        Payment savedPayment = paymentRepository.save(payment);
+    public PaymentResponse createPayment(String idempotencyKey, PaymentRequest request) {
 
-        // entity to response
-        return new PaymentResponse(
-                savedPayment.getId(),
-                savedPayment.getUserId(),
-                savedPayment.getAmount(),
-                savedPayment.getStatus(),
-                savedPayment.getCreatedAt()
-        );
+        Optional<PaymentResponse> cachedResponse =
+                idempotencyService.getCachedResponse(idempotencyKey);
+
+        if (cachedResponse.isPresent()){
+            return cachedResponse.get();
+        }
+
+        boolean locked =
+                idempotencyService.acquireLock(idempotencyKey);
+
+        if (!locked) {
+            throw new PaymentAlreadyProcessingException(idempotencyKey);
+        }
+        try {
+
+            //re-check for cache
+            Optional<PaymentResponse> cachedAfterLock =
+                    idempotencyService.getCachedResponse(idempotencyKey);
+
+            if (cachedAfterLock.isPresent()) {
+                return cachedAfterLock.get();
+            }
+
+            //dto to entity
+            Payment payment = Payment.builder()
+                    .userId(request.userId())
+                    .amount(request.amount())
+                    .build();
+            //DB save
+            Payment savedPayment = paymentRepository.save(payment);
+
+            // entity to response
+            PaymentResponse response =
+                    new PaymentResponse(
+                        savedPayment.getId(),
+                        savedPayment.getUserId(),
+                        savedPayment.getAmount(),
+                        savedPayment.getStatus(),
+                        savedPayment.getCreatedAt()
+                    );
+
+            // write cache
+
+            idempotencyService.cacheResponse(idempotencyKey,response);
+
+            return response;
+        }finally {
+            idempotencyService.releaseLock(idempotencyKey);
+        }
     }
 }

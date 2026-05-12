@@ -5,6 +5,7 @@ import com.osoki.paymentsystem.payment.dto.PaymentRequest;
 import com.osoki.paymentsystem.payment.dto.PaymentResponse;
 import com.osoki.paymentsystem.payment.service.PaymentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,22 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
-            @Valid @RequestBody PaymentRequest request
+            @RequestHeader("Idempotency-Key")
+            @NotBlank(message = "Idempotency-Key is required")
+            String idempotencyKey,
+
+            @Valid
+            @RequestBody
+            PaymentRequest request
     ) {
+        PaymentResponse response =
+                paymentService.createPayment(
+                        idempotencyKey,
+                        request
+                );
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(paymentService.createPayment(request)));
+                .body(ApiResponse.success(response));
     }
 }

@@ -15,6 +15,9 @@ public class PaymentsystemApplication {
 		System.setProperty("DB_USER", dotenv.get("DB_USER"));
 		System.setProperty("DB_PASSWORD", dotenv.get("DB_PASSWORD"));
 
+		System.setProperty("REDIS_HOST", dotenv.get("REDIS_HOST"));
+		System.setProperty("REDIS_PORT", dotenv.get("REDIS_PORT"));
+
 		SpringApplication.run(PaymentsystemApplication.class, args);
 	}
 
