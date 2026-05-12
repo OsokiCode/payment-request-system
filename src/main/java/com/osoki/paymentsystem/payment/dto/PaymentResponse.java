@@ -11,6 +11,7 @@ public record PaymentResponse(
         Long userId,
         BigDecimal amount,
         PaymentStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
 }

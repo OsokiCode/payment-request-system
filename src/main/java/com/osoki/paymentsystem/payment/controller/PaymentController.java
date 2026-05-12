@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
@@ -37,5 +39,38 @@ public class PaymentController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        paymentService.getPaymentById(id)
+                )
+        );
+    }
+
+
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<ApiResponse<PaymentResponse>> completePayment(
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        paymentService.markAsCompleted(id)
+                )
+        );
+    }
+    @PatchMapping("/{id}/fail")
+    public ResponseEntity<ApiResponse<PaymentResponse>> failPayment(
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        paymentService.markAsFailed(id)
+                )
+        );
     }
 }
